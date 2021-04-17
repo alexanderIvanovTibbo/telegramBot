@@ -140,10 +140,13 @@ def alarm_main(update: Update, _: CallbackContext) -> int:
     query.answer()
     keyboard = [
         [
-            InlineKeyboardButton("Set Alarm", callback_data=str(ONE)),
+            InlineKeyboardButton("Alarm Status", callback_data=str(ONE)),
         ],
         [
-            InlineKeyboardButton("Unset Alarm", callback_data=str(TWO)),
+            InlineKeyboardButton("Set Alarm", callback_data=str(TWO)),
+        ],
+        [
+            InlineKeyboardButton("Unset Alarm", callback_data=str(THREE)),
         ],
         [
             InlineKeyboardButton("Back", callback_data=str(BACK)),
@@ -373,9 +376,24 @@ def restart_job(context: CallbackContext):
            text_file = open("jobLogger.txt", "r")
            chat_id = text_file.read()
            text_file.close()
-#           job_removed = remove_job_if_exists(str(chat_id), context)
            context.job_queue.run_repeating(alarm, 10, context=str(chat_id), name=str(chat_id))
-#        query.edit_message_text(text='Alarm turn ON', reply_markup=reply_markup)
+
+def check_alarm(update: Update, context: CallbackContext) -> int:
+    """Check active jobs"""
+    query = update.callback_query
+    query.answer()
+    keyboard = [
+        [
+            InlineKeyboardButton("Back", callback_data=str(FIVE)),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    current_jobs = context.job_queue.get_jobs_by_name(str(chat_id))
+    if not current_jobs:
+        query.edit_message_text(text="Alarm all off", reply_markup=reply_markup)
+    for job in current_jobs:
+        query.edit_message_text(text="Alarm turn ON ("+f'{job.name}'+")", reply_markup=reply_markup)
+    return MAIN
 
 def unset(update: Update, context: CallbackContext) -> int:
     """Remove the job if the user changed their mind."""
@@ -430,8 +448,9 @@ def main() -> None:
             ],
 
             ALARM: [
-                CallbackQueryHandler(set_timer, pattern='^' + str(ONE) + '$'),
-                CallbackQueryHandler(unset, pattern='^' + str(TWO) + '$'),
+                CallbackQueryHandler(check_alarm, pattern='^' + str(ONE) + '$'),
+                CallbackQueryHandler(set_timer, pattern='^' + str(TWO) + '$'),
+                CallbackQueryHandler(unset, pattern='^' + str(THREE) + '$'),
                 CallbackQueryHandler(start_over, pattern='^' + str(BACK) + '$'),
             ],
 
