@@ -1,0 +1,6 @@
+greenst/toilet
+2021-04-17 12:31:16
+"battery":100
+"contact":true
+"linkquality":144
+"voltage":3025
