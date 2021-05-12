@@ -35,6 +35,7 @@ MAIN, MEDIA, RASP, MODEM, FILES, ALARM = range(6)
 ONE, TWO, THREE, FOUR, FIVE, BACK = range(6)
 
 mainFolder = "/home/pi/webcam/usb0/teleBotData"
+scriptFolder = "/home/pi/webcam/usb0/scriptFolder/mainScript/telebotMqtt/"
 users = [882010412,1275463615]
 ipCam="192.168.0.10"
 prev_msg = ""
@@ -320,7 +321,7 @@ def alarm(context: CallbackContext) -> None:
     """Send the alarm message."""
     job = context.job
     global prev_msg
-    with open("alarmLogger.txt","r") as openfile:
+    with open(scriptFolder+"alarmLogger.txt","r") as openfile:
         text_msg = openfile.read()
         if not str(prev_msg) in text_msg:
            context.bot.send_message(chat_id=str(chat_id), text=str(text_msg))
@@ -361,7 +362,7 @@ def set_timer(update: Update, context: CallbackContext) -> int:
         context.job_queue.run_repeating(alarm, 10, context=chat_id, name=str(chat_id))
         query.edit_message_text(text='Alarm turn ON', reply_markup=reply_markup)
 
-        job_file = open("jobLogger.txt", "w")
+        job_file = open(scriptFolder+"jobLogger.txt", "w")
         job_file.write(str(chat_id))
         job_file.close()
 
@@ -372,8 +373,8 @@ def set_timer(update: Update, context: CallbackContext) -> int:
 def restart_job(context: CallbackContext):
         """Restart a job to the queue."""
         global chat_id
-        if not os.stat("jobLogger.txt").st_size == 0:
-           text_file = open("jobLogger.txt", "r")
+        if not os.stat(scriptFolder+"jobLogger.txt").st_size == 0:
+           text_file = open(scriptFolder+"jobLogger.txt", "r")
            chat_id = text_file.read()
            text_file.close()
            context.job_queue.run_repeating(alarm, 10, context=str(chat_id), name=str(chat_id))
@@ -408,7 +409,7 @@ def unset(update: Update, context: CallbackContext) -> int:
     job_removed = remove_job_if_exists(str(chat_id), context)
     text = 'Alarm turn OFF' if job_removed else 'Alarm all ready off'
     query.edit_message_text(text=text, reply_markup=reply_markup)
-    job_file = open("jobLogger.txt", "w")
+    job_file = open(scriptFolder+"jobLogger.txt", "w")
     job_file.write("")
     job_file.close()
     return MAIN
