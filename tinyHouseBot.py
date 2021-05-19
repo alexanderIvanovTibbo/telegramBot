@@ -11,7 +11,7 @@ import binascii
 import psutil
 import shutil
 from uuid import uuid4
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InlineQueryResultCachedPhoto, InputMediaPhoto
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InlineQueryResultCachedPhoto, InputMediaPhoto, ReplyKeyboardMarkup
 from telegram.ext import (
     Updater,
     CommandHandler,
@@ -35,209 +35,139 @@ MAIN, MEDIA, RASP, MODEM, FILES, ALARM = range(6)
 ONE, TWO, THREE, FOUR, FIVE, BACK = range(6)
 
 mainFolder = "/home/pi/webcam/usb0/teleBotData"
-scriptFolder = "/home/pi/webcam/usb0/scriptFolder/mainScript/telebotMqtt/"
+# scriptFolder = "/home/pi/webcam/usb0/scriptFolder/mainScript/telebotMqtt/"
+scriptFolder = ""
 users = [882010412,1275463615]
 ipCam="192.168.0.10"
 prev_msg = ""
 
 def start(update: Update, _: CallbackContext) -> int:
   """Send message on `/start`."""
-  # Get user that sent /start and log his name
+  """ Get user that sent /start and log his name"""
   user = update.message.from_user
   global chat_id
   chat_id = update.message.chat_id
   logger.info("User %s(id:%s) started the conversation.", user.first_name,user.id)
   if user.id not in users:
-      update.message.reply_text("Not authorized ID. Contact with chat admin. Your ID: %s" % user.id)
+      update.message.reply_text("Не авторизованый пользователь. Обратитесь к администратору Telegram канала. Ваш ID пользователя: %s" % user.id)
   else :
-    keyboard = [
-        [
-            InlineKeyboardButton("Get Photo/Video", callback_data=str(ONE)),
-            InlineKeyboardButton("3G Modem Info", callback_data=str(TWO)),
-        ],
-        [
-            InlineKeyboardButton("Rasp Info", callback_data=str(THREE)),
-            InlineKeyboardButton("Alarm", callback_data=str(FIVE)),
-        ],
+    reply_keyboard =\
+    [
+        ["Получить фото/видео"],
+        ["Информация о 3G модеме"],
+        ["Информация о системе"],
+        ["Информация о тревогах"]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text("Start handler, Choose a route", reply_markup=reply_markup)
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
+    update.message.reply_text("Главное меню", reply_markup=reply_markup)
     return MAIN
 
 
 def start_over(update: Update, _: CallbackContext) -> int:
     """Prompt same text & keyboard as `start` does but not as new message"""
-    # Get CallbackQuery from Update
-    query = update.callback_query
-    query.answer()
-    keyboard = [
-        [
-            InlineKeyboardButton("Get Photo/Video", callback_data=str(ONE)),
-            InlineKeyboardButton("3G Modem Info", callback_data=str(TWO)),
-        ],
-        [
-            InlineKeyboardButton("Rasp Info", callback_data=str(THREE)),
-            InlineKeyboardButton("Alarm", callback_data=str(FIVE)),
-        ],
+    reply_keyboard =\
+    [
+        ["Получить фото/видео"],
+        ["Информация о 3G модеме"],
+        ["Информация о системе"],
+        ["Информация о тревогах"]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text('Please choose:', reply_markup=reply_markup)
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
+    update.message.reply_text('Вернулись в главное меню:', reply_markup=reply_markup)
     return MAIN
 
 
 
 def media_main(update: Update, _: CallbackContext) -> int:
-    query = update.callback_query
-    query.answer()
-    query.edit_message_text(text="Send /photo to get photo")
+    reply_keyboard =\
+    [
+        ["Получить фото"],
+        ["Получить видео"],
+        ["< Назад"],
+    ]
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
+    update.message.reply_text(text="Получить фото/видео", reply_markup=reply_markup)
     return MEDIA
 
 
 def modem_main(update: Update, _: CallbackContext) -> int:
-    """Show new choice of buttons"""
-    query = update.callback_query
-    query.answer()
-    keyboard = [
+    reply_keyboard = \
         [
-            InlineKeyboardButton("Check SIM Balance", callback_data=str(ONE)),
-        ],
-        [   InlineKeyboardButton("Back", callback_data=str(BACK)),
-        ],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text(
-        text="3G modem Info. Please choose:", reply_markup=reply_markup
-    )
+            ["Баланс SIM-карты"],
+            ["< Назад"],
+        ]
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+    update.message.reply_text(text="Информация о 3G модеме", reply_markup=reply_markup)
     return MODEM
 
 
 def rasp_main(update: Update, _: CallbackContext) -> int:
-    """Show new choice of buttons"""
-    query = update.callback_query
-    query.answer()
-    keyboard = [
-        [
-            InlineKeyboardButton("Check CPU Temp", callback_data=str(ONE)),
-        ],
-        [
-            InlineKeyboardButton("Check Disk Usage", callback_data=str(TWO)),
-        ],
-        [
-            InlineKeyboardButton("Bot Duration Time", callback_data=str(THREE)),
-        ],
-        [
-            InlineKeyboardButton("Back", callback_data=str(BACK)),
-        ],
+    reply_keyboard =\
+    [
+        ["Температура CPU"],
+        ["информация о HDD"],
+        ["Время работы Telegram-бота"],
+        ["< Назад"],
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text(
-        text="Raspberry Info. Please choose:", reply_markup=reply_markup
-    )
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
+    update.message.reply_text(text="Информация о системе", reply_markup=reply_markup)
     return RASP
 
 def alarm_main(update: Update, _: CallbackContext) -> int:
-    """Show new choice of buttons"""
-    query = update.callback_query
-    query.answer()
-    keyboard = [
-        [
-            InlineKeyboardButton("Alarm Status", callback_data=str(ONE)),
-        ],
-        [
-            InlineKeyboardButton("Set Alarm", callback_data=str(TWO)),
-        ],
-        [
-            InlineKeyboardButton("Unset Alarm", callback_data=str(THREE)),
-        ],
-        [
-            InlineKeyboardButton("Back", callback_data=str(BACK)),
-        ],
+    reply_keyboard =\
+    [
+        ["Статус тревог"],
+        ["Поставить на охрану"],
+        ["Снять с охраны"],
+        ["< Назад"],
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text(
-        text="Alarm settings. Please choose:", reply_markup=reply_markup
-    )
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
+    update.message.reply_text(text="Информация о тревогах", reply_markup=reply_markup)
     return ALARM
 
 def get_balance(update: Update, _: CallbackContext) -> int:
-  query = update.callback_query
-  query.answer()
   sessionID_url='https://lk.megafon.ru/remainders/'
   webpage=subprocess.check_output("w3m -M -dump -no-graph '%s'" % sessionID_url, shell= True).decode('UTF-8')
   index1=webpage.find("Интернет")
   index2=int(webpage.find('В пути'))
   balance=webpage[index1:(index2-2)]
   balance=balance.replace('\n\n','\n')
-  keyboard = [
-        [
-            InlineKeyboardButton("Back", callback_data=str(TWO)),
-        ],
-    ]
-  reply_markup = InlineKeyboardMarkup(keyboard)
-  query.edit_message_text(text=balance, reply_markup=reply_markup)
-  return MAIN
+  update.message.reply_text(text=balance)
+  return MODEM
 
 def get_durationtime(update: Update, _: CallbackContext) -> int:
-  query = update.callback_query
-  query.answer()
   pid = os.getpid()
   etime = subprocess.check_output("ps -p %s -o etime=" % pid, shell=True).decode('UTF-8')
-  keyboard = [
-        [
-            InlineKeyboardButton("Back", callback_data=str(THREE)),
-        ],
-    ]
-  reply_markup = InlineKeyboardMarkup(keyboard)
-  query.edit_message_text(text="Bot duration time:%s" % etime, reply_markup=reply_markup)
-  return MAIN
+  update.message.reply_text(text="Bot duration time:%s" % etime)
+  return RASP
 
 def get_disk_usage(update: Update, _: CallbackContext) -> int:
-  keyboard = [
-        [
-            InlineKeyboardButton("Back", callback_data=str(THREE)),
-        ],
-    ]
-  reply_markup = InlineKeyboardMarkup(keyboard)
-  query = update.callback_query
-  query.answer()
   hdd = psutil.disk_usage("/home/pi/webcam/usb0")
   strText = "Total: %s \nUsed: %s \nFree: %s " % (getsize(hdd.total),getsize(hdd.used),getsize(hdd.free))
-  query.edit_message_text(text=strText, reply_markup=reply_markup)
-  return MAIN
+  update.message.reply_text(text=strText)
+  return RASP
 
 def get_temp(update: Update, _: CallbackContext) -> int:
-  query = update.callback_query
-  query.answer()
   temp = os.popen('vcgencmd measure_temp').readline()
-  keyboard = [
-        [
-            InlineKeyboardButton("Back", callback_data=str(THREE)),
-        ],
-    ]
-  reply_markup = InlineKeyboardMarkup(keyboard)
-  query.edit_message_text(text="Core temperature: %s" % temp.replace('temp=',''), reply_markup=reply_markup)
-  return MAIN
+  update.message.reply_text(text="Core temperature: %s" % temp.replace('temp=',''))
+  return RASP
 
-#def get_video(update: Update, _: CallbackContext) -> None:
-#  if check_ping()==0:
-#     update.message.reply_text(text=f'Wait a few minutes')
-#     videoDir = get_folder(1)
-#     flag = stream_video()
-#     if flag:
-#         video = open(videoDir, 'rb')
-#         update.message.bot.send_video(chat_id=chat_id, video=video)
-#     else:
-#        update.message.reply_text(text=f'Video not found')
-#  else:
-#        update.message.reply_text(text=f'IP cam not connected')
+def get_video(update: Update, _: CallbackContext) -> None:
+    update.message.reply_text(text=f'Функция недоступна')
+ # if check_ping()==0:
+ #    update.message.reply_text(text=f'Wait a few minutes')
+ #    videoDir = get_folder(1)
+ #    flag = stream_video()
+ #    if flag:
+ #        video = open(videoDir, 'rb')
+ #        update.message.bot.send_video(chat_id=chat_id, video=video)
+ #    else:
+ #       update.message.reply_text(text=f'Video not found')
+ # else:
+ #       update.message.reply_text(text=f'IP cam not connected')
+    return MEDIA
 
 def get_photo(update: Update, _: CallbackContext) -> None:
-  keyboard = [
-        [
-            InlineKeyboardButton("Back", callback_data=str(ONE)),
-        ],
-    ]
-  reply_markup = InlineKeyboardMarkup(keyboard)
   if check_ping()==0:
       update.message.reply_text(text='Wait a few minutes')
       fotoDir=get_folder(0)
@@ -249,8 +179,8 @@ def get_photo(update: Update, _: CallbackContext) -> None:
       else:
          update.message.reply_text(text='Video not found')
   else:
-         update.message.reply_text(text='IP cam not connected', reply_markup=reply_markup)
-  return MAIN
+         update.message.reply_text(text='IP cam not connected')
+  return MEDIA
 
 def get_photoGroup():
   if check_ping()==0:
@@ -348,27 +278,18 @@ def remove_job_if_exists(name: str, context: CallbackContext) -> bool:
     return True
 
 def set_timer(update: Update, context: CallbackContext) -> int:
-    """Add a job to the queue."""
-    keyboard = [
-        [
-            InlineKeyboardButton("Back", callback_data=str(FIVE)),
-        ],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query = update.callback_query
-    query.answer()
     try:
         job_removed = remove_job_if_exists(str(chat_id), context)
         context.job_queue.run_repeating(alarm, 10, context=chat_id, name=str(chat_id))
-        query.edit_message_text(text='Alarm turn ON', reply_markup=reply_markup)
+        update.message.reply_text(text='Alarm turn ON')
 
         job_file = open(scriptFolder+"jobLogger.txt", "w")
         job_file.write(str(chat_id))
         job_file.close()
 
     except (IndexError, ValueError):
-        query.edit_message_text(text='Usage: /set <seconds>', reply_markup=reply_markup)
-    return MAIN
+        update.message.reply_text(text='Usage: /set <seconds>')
+    return ALARM
 
 def restart_job(context: CallbackContext):
         """Restart a job to the queue."""
@@ -381,42 +302,26 @@ def restart_job(context: CallbackContext):
 
 def check_alarm(update: Update, context: CallbackContext) -> int:
     """Check active jobs"""
-    query = update.callback_query
-    query.answer()
-    keyboard = [
-        [
-            InlineKeyboardButton("Back", callback_data=str(FIVE)),
-        ],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
     current_jobs = context.job_queue.get_jobs_by_name(str(chat_id))
     if not current_jobs:
-        query.edit_message_text(text="Alarm all off", reply_markup=reply_markup)
+        update.message.reply_text(text="Alarm all off")
     for job in current_jobs:
-        query.edit_message_text(text="Alarm turn ON ("+f'{job.name}'+")", reply_markup=reply_markup)
-    return MAIN
+        update.message.reply_text(text="Alarm turn ON ("+f'{job.name}'+")")
+    return ALARM
 
 def unset(update: Update, context: CallbackContext) -> int:
     """Remove the job if the user changed their mind."""
-    keyboard = [
-        [
-            InlineKeyboardButton("Back", callback_data=str(FIVE)),
-        ],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    query = update.callback_query
-    query.answer()
     job_removed = remove_job_if_exists(str(chat_id), context)
     text = 'Alarm turn OFF' if job_removed else 'Alarm all ready off'
-    query.edit_message_text(text=text, reply_markup=reply_markup)
+    update.message.reply_text(text=text)
     job_file = open(scriptFolder+"jobLogger.txt", "w")
     job_file.write("")
     job_file.close()
-    return MAIN
+    return ALARM
 
 def main() -> None:
     # Create the Updater and pass it your bot's token.
-    updater = Updater("1312160633:AAFMtHytCMbW9GIFVIEMUlsaUnqJZG3meGs", request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
+    updater = Updater("", request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
     j = updater.job_queue
     j.run_once(restart_job,1)
     # Get the dispatcher to register handlers
@@ -426,37 +331,39 @@ def main() -> None:
         entry_points=[CommandHandler('start', start)],
         states={
             MAIN: [
-                CallbackQueryHandler(media_main, pattern='^' + str(ONE) + '$'),
-                CallbackQueryHandler(modem_main, pattern='^' + str(TWO) + '$'),
-                CallbackQueryHandler(rasp_main, pattern='^' + str(THREE) + '$'),
-                CallbackQueryHandler(alarm_main, pattern='^' + str(FIVE) + '$'),
+                MessageHandler(Filters.text('Получить фото/видео'),media_main),
+                MessageHandler(Filters.text('Информация о 3G модеме'),modem_main),
+                MessageHandler(Filters.text('Информация о системе'),rasp_main),
+                MessageHandler(Filters.text('Информация о тревогах'),alarm_main)
+                # CallbackQueryHandler(media_main, pattern='^' + str(ONE) + '$'),
+                # CallbackQueryHandler(modem_main, pattern='^' + str(TWO) + '$'),
+                # CallbackQueryHandler(rasp_main, pattern='^' + str(THREE) + '$'),
+                # CallbackQueryHandler(alarm_main, pattern='^' + str(FIVE) + '$'),
             ],
             MEDIA: [
 #                CommandHandler('photo', get_photoGroup),
-                CommandHandler('photo', get_photo),
+#                 CommandHandler('photo', get_photo),
 #                CommandHandler('video', get_video)
+                MessageHandler(Filters.text('Получить фото'),get_photo),
+                MessageHandler(Filters.text('Получить видео'),get_video)
             ],
             MODEM: [
-                CallbackQueryHandler(get_balance, pattern='^' + str(ONE) + '$'),
-                CallbackQueryHandler(start_over, pattern='^' + str(BACK) + '$'),
+                MessageHandler(Filters.text('Баланс SIM-карты'),get_balance)
             ],
 
             RASP: [
-                CallbackQueryHandler(get_temp, pattern='^' + str(ONE) + '$'),
-                CallbackQueryHandler(get_disk_usage, pattern='^' + str(TWO) + '$'),
-                CallbackQueryHandler(get_durationtime, pattern='^' + str(THREE) + '$'),
-                CallbackQueryHandler(start_over, pattern='^' + str(BACK) + '$'),
+                MessageHandler(Filters.text('Температура CPU'),get_temp),
+                MessageHandler(Filters.text('информация о HDD'),get_disk_usage),
+                MessageHandler(Filters.text('Время работы Telegram-бота'),get_durationtime)
             ],
 
             ALARM: [
-                CallbackQueryHandler(check_alarm, pattern='^' + str(ONE) + '$'),
-                CallbackQueryHandler(set_timer, pattern='^' + str(TWO) + '$'),
-                CallbackQueryHandler(unset, pattern='^' + str(THREE) + '$'),
-                CallbackQueryHandler(start_over, pattern='^' + str(BACK) + '$'),
+                MessageHandler(Filters.text('Статус тревог'),check_alarm),
+                MessageHandler(Filters.text('Поставить на охрану'),set_timer),
+                MessageHandler(Filters.text('Снять с охраны'),unset)
             ],
-
         },
-        fallbacks=[CommandHandler('start', start)],
+        fallbacks=[MessageHandler(Filters.text('< Назад'), start_over)],
     )
     # Add ConversationHandler to dispatcher that will be used for handling
     # updates
