@@ -1,0 +1,7 @@
+2021-05-20 09:13:29,466 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2021-05-20 09:13:29,466 - apscheduler.scheduler - INFO - Added job "restart_job" to job store "default"
+2021-05-20 09:13:29,466 - apscheduler.scheduler - INFO - Scheduler started
+2021-05-20 09:13:30,438 - apscheduler.executors.default - INFO - Running job "restart_job (trigger: date[2021-05-20 06:13:30 UTC], next run at: 2021-05-20 06:13:30 UTC)" (scheduled at 2021-05-20 06:13:30.403933+00:00)
+2021-05-20 09:13:30,438 - apscheduler.scheduler - INFO - Removed job 29299c8691af4a8bb155cad4f0b7e346
+2021-05-20 09:13:30,438 - apscheduler.executors.default - INFO - Job "restart_job (trigger: date[2021-05-20 06:13:30 UTC], next run at: 2021-05-20 06:13:30 UTC)" executed successfully
+2021-05-20 09:13:40,853 - __main__ - INFO - User Alexander(id:882010412) started the conversation.

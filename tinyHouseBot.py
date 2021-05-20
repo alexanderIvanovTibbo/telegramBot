@@ -24,6 +24,8 @@ from telegram.ext import (
 
 # Enable logging
 logging.basicConfig(
+    filename='app.log',
+    filemode='w',
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
 
@@ -65,6 +67,7 @@ def start(update: Update, _: CallbackContext) -> int:
 
 def start_over(update: Update, _: CallbackContext) -> int:
     """Prompt same text & keyboard as `start` does but not as new message"""
+
     reply_keyboard =\
     [
         ["Получить фото/видео"],
@@ -73,6 +76,7 @@ def start_over(update: Update, _: CallbackContext) -> int:
         ["Информация о тревогах"]
     ]
     reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
+    update.message.bot.delete_message(chat_id=chat_id, message_id=update.message.message_id)
     update.message.reply_text('Вернулись в главное меню:', reply_markup=reply_markup)
     return MAIN
 
@@ -86,6 +90,7 @@ def media_main(update: Update, _: CallbackContext) -> int:
         ["< Назад"],
     ]
     reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
+    update.message.bot.delete_message(chat_id=chat_id, message_id=update.message.message_id)
     update.message.reply_text(text="Получить фото/видео", reply_markup=reply_markup)
     return MEDIA
 
@@ -97,6 +102,7 @@ def modem_main(update: Update, _: CallbackContext) -> int:
             ["< Назад"],
         ]
     reply_markup = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True, one_time_keyboard=True)
+    update.message.bot.delete_message(chat_id=chat_id, message_id=update.message.message_id)
     update.message.reply_text(text="Информация о 3G модеме", reply_markup=reply_markup)
     return MODEM
 
@@ -107,9 +113,11 @@ def rasp_main(update: Update, _: CallbackContext) -> int:
         ["Температура CPU"],
         ["информация о HDD"],
         ["Время работы Telegram-бота"],
+        ["Получить логи Telegram-бота"],
         ["< Назад"],
     ]
     reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
+    update.message.bot.delete_message(chat_id=chat_id, message_id=update.message.message_id)
     update.message.reply_text(text="Информация о системе", reply_markup=reply_markup)
     return RASP
 
@@ -122,6 +130,7 @@ def alarm_main(update: Update, _: CallbackContext) -> int:
         ["< Назад"],
     ]
     reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
+    update.message.bot.delete_message(chat_id=chat_id, message_id=update.message.message_id)
     update.message.reply_text(text="Информация о тревогах", reply_markup=reply_markup)
     return ALARM
 
@@ -150,6 +159,11 @@ def get_disk_usage(update: Update, _: CallbackContext) -> int:
 def get_temp(update: Update, _: CallbackContext) -> int:
   temp = os.popen('vcgencmd measure_temp').readline()
   update.message.reply_text(text="Core temperature: %s" % temp.replace('temp=',''))
+  return RASP
+
+def get_log(update: Update, _: CallbackContext) -> int:
+  log_file = open('app.log')
+  update.message.reply_document(document=log_file)
   return RASP
 
 def get_video(update: Update, _: CallbackContext) -> None:
@@ -354,7 +368,8 @@ def main() -> None:
             RASP: [
                 MessageHandler(Filters.text('Температура CPU'),get_temp),
                 MessageHandler(Filters.text('информация о HDD'),get_disk_usage),
-                MessageHandler(Filters.text('Время работы Telegram-бота'),get_durationtime)
+                MessageHandler(Filters.text('Время работы Telegram-бота'),get_durationtime),
+                MessageHandler(Filters.text('Получить логи Telegram-бота'),get_log)
             ],
 
             ALARM: [
