@@ -37,8 +37,8 @@ MAIN, MEDIA, RASP, MODEM, FILES, ALARM = range(6)
 ONE, TWO, THREE, FOUR, FIVE, BACK = range(6)
 
 mainFolder = "/home/pi/webcam/usb0/teleBotData"
-# scriptFolder = "/home/pi/webcam/usb0/scriptFolder/mainScript/telebotMqtt/"
-scriptFolder = ""
+scriptFolder = "/home/pi/webcam/usb0/mainScript/telegramBot/"
+#scriptFolder = ""
 users = [882010412,1275463615]
 ipCam="192.168.0.10"
 prev_msg = ""
@@ -111,7 +111,7 @@ def rasp_main(update: Update, _: CallbackContext) -> int:
     reply_keyboard =\
     [
         ["Температура CPU"],
-        ["информация о HDD"],
+        ["Информация о HDD"],
         ["Время работы Telegram-бота"],
         ["Получить логи Telegram-бота"],
         ["< Назад"],
@@ -367,7 +367,7 @@ def main() -> None:
 
             RASP: [
                 MessageHandler(Filters.text('Температура CPU'),get_temp),
-                MessageHandler(Filters.text('информация о HDD'),get_disk_usage),
+                MessageHandler(Filters.text('Информация о HDD'),get_disk_usage),
                 MessageHandler(Filters.text('Время работы Telegram-бота'),get_durationtime),
                 MessageHandler(Filters.text('Получить логи Telegram-бота'),get_log)
             ],
