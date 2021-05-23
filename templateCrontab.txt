@@ -1,4 +1,4 @@
-@reboot python /home/pi/webcam/usb0/scriptFolder/mainScript/telebotMqtt/mqttClient.py
-@reboot python /home/pi/webcam/usb0/scriptFolder/mainScript/telebotMqtt/tinyHouseBot.py
-@reboot sh /home/pi/webcam/usb0/scriptFolder/mainScript/telebotMqtt/modem3g.sh start
-*/5 * * * * sudo /home/pi/usb0/scriptFolder/mainScript/telebotMqtt/crontab.sh
+@reboot python /home/pi/webcam/usb0/mainScript/telegramBot/mqttClient.py
+@reboot python /home/pi/webcam/usb0/mainScript/telegramBot/shutdown.sh
+@reboot sh /home/pi/webcam/usb0/mainScript/telegramBot/modem3g.sh start
+*/5 * * * * sudo /home/pi/usb0/mainScript/telegramBot/crontab.sh
