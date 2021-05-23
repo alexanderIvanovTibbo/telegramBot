@@ -9,8 +9,8 @@ do
 	if [[ $i == 2 ]]
 	then
 	    echo "Reconnect"
-        sh /home/pi/webcam/usb0/scriptFolder/mainScript/telebotMqtt/modem3g.sh stop
-	    sh /home/pi/webcam/usb0/scriptFolder/mainScript/telebotMqtt/modem3g.sh start
+        sh /home/pi/webcam/usb0/mainScript/telegramBot/modem3g.sh stop
+	    sh /home/pi/webcam/usb0/mainScript/telegramBot/modem3g.sh start
 	    sleep 5
 	fi
 
@@ -25,7 +25,7 @@ done
 if [ $(pgrep -c -f tinyHouseBot.py) == 0 ]
 then
    sleep 1
-   python /home/pi/webcam/usb0/scriptFolder/mainScript/telebotMqtt/tinyHouseBot.py
+   python /home/pi/webcam/usb0/mainScript/telegramBot/tinyHouseBot.py
   exit 1
 else
    echo "Exit! Python bot is already running!"
