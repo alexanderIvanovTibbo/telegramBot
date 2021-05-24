@@ -24,8 +24,8 @@ from telegram.ext import (
 
 # Enable logging
 logging.basicConfig(
-    filename='app.log',
-    filemode='w',
+    # filename='app.log',
+    # filemode='w',
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
 
@@ -37,8 +37,8 @@ MAIN, MEDIA, RASP, MODEM, FILES, ALARM = range(6)
 ONE, TWO, THREE, FOUR, FIVE, BACK = range(6)
 
 mainFolder = "/home/pi/webcam/usb0/teleBotData"
-scriptFolder = "/home/pi/webcam/usb0/mainScript/telegramBot/"
-#scriptFolder = ""
+# scriptFolder = "/home/pi/webcam/usb0/mainScript/telegramBot/"
+scriptFolder = ""
 users = [882010412,1275463615]
 ipCam="192.168.0.10"
 prev_msg = ""
@@ -127,6 +127,7 @@ def alarm_main(update: Update, _: CallbackContext) -> int:
         ["Статус тревог"],
         ["Поставить на охрану"],
         ["Снять с охраны"],
+        ["Отключить все тревоги"],
         ["< Назад"],
     ]
     reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
@@ -293,13 +294,21 @@ def remove_job_if_exists(name: str, context: CallbackContext) -> bool:
 
 def set_timer(update: Update, context: CallbackContext) -> int:
     try:
+        match_id = False
+        chat_id = update.message.chat_id
         job_removed = remove_job_if_exists(str(chat_id), context)
         context.job_queue.run_repeating(alarm, 10, context=chat_id, name=str(chat_id))
         update.message.reply_text(text='Alarm turn ON')
-
-        job_file = open(scriptFolder+"jobLogger.txt", "w")
-        job_file.write(str(chat_id))
-        job_file.close()
+        text_file = open(scriptFolder + "jobLogger.txt", "r")
+        lines = text_file.readlines()
+        for line in lines:
+            if str(chat_id) in str(line.strip()):
+                match_id = True
+        text_file.close()
+        if not match_id:
+            text_file = open('jobLogger.txt', 'a')
+            text_file.write(str(chat_id)+'\n')
+            text_file.close()
 
     except (IndexError, ValueError):
         update.message.reply_text(text='Usage: /set <seconds>')
@@ -307,35 +316,77 @@ def set_timer(update: Update, context: CallbackContext) -> int:
 
 def restart_job(context: CallbackContext):
         """Restart a job to the queue."""
-        global chat_id
+        # global chat_id
         if not os.stat(scriptFolder+"jobLogger.txt").st_size == 0:
            text_file = open(scriptFolder+"jobLogger.txt", "r")
-           chat_id = text_file.read()
+           lines = text_file.readlines()
+           for line in lines:
+               context.job_queue.run_repeating(alarm, 10, context=str(line.strip()), name=str(line.strip()))
            text_file.close()
-           context.job_queue.run_repeating(alarm, 10, context=str(chat_id), name=str(chat_id))
 
 def check_alarm(update: Update, context: CallbackContext) -> int:
     """Check active jobs"""
-    current_jobs = context.job_queue.get_jobs_by_name(str(chat_id))
+    current_jobs = context.job_queue.jobs()
     if not current_jobs:
-        update.message.reply_text(text="Alarm all off")
+        update.message.reply_text(text="Все тревоги отключены")
     for job in current_jobs:
-        update.message.reply_text(text="Alarm turn ON ("+f'{job.name}'+")")
+        update.message.reply_text(text="Тревога включена ("+f'{job.name}'+")")
+    return ALARM
+
+def unset_help(update: Update, _: CallbackContext) -> None:
+    reply_keyboard =\
+    [
+        ["< Назад"],
+    ]
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
+    update.message.bot.delete_message(chat_id=chat_id, message_id=update.message.message_id)
+    update.message.reply_text('Отправь /unset <Имя тревоги> для отключения тревоги', reply_markup=reply_markup)
     return ALARM
 
 def unset(update: Update, context: CallbackContext) -> int:
     """Remove the job if the user changed their mind."""
-    job_removed = remove_job_if_exists(str(chat_id), context)
-    text = 'Alarm turn OFF' if job_removed else 'Alarm all ready off'
-    update.message.reply_text(text=text)
-    job_file = open(scriptFolder+"jobLogger.txt", "w")
-    job_file.write("")
-    job_file.close()
+    reply_keyboard =\
+    [
+        ["Статус тревог"],
+        ["Поставить на охрану"],
+        ["Снять с охраны"],
+        ["Отключить все тревоги"],
+        ["< Назад"],
+    ]
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
+    chat_id = update.message.chat_id
+    try:
+        alarm_id = str(context.args[0])
+        job_removed = remove_job_if_exists(alarm_id, context)
+        text = 'Тревога отключена' if job_removed else 'Все тревоги отключены'
+        update.message.reply_text(text=text, reply_markup=reply_markup)
+        with open("jobLogger.txt", "r") as file:
+            lines = file.readlines()
+        with open("jobLogger.txt", "w") as file:
+            for line in lines:
+                if line.strip("\n") != alarm_id:
+                    file.write(line)
+        file.close()
+    except (IndexError, ValueError):
+        update.message.reply_text('Синтаксис: /unset <Имя тревоги>', reply_markup=reply_markup)
+    return ALARM
+
+def unset_all(update: Update, context: CallbackContext) -> int:
+    """Remove the job if the user changed their mind."""
+    current_jobs = context.job_queue.jobs()
+    if not current_jobs:
+        update.message.reply_text(text="Тревоги отсутствуют")
+    for job in current_jobs:
+        update.message.reply_text(text="Тревога отключена ("+f'{job.name}'+")")
+        job_removed = remove_job_if_exists(str(job.name), context)
+    with open("jobLogger.txt", "w") as file:
+            file.write('')
+    file.close()
     return ALARM
 
 def main() -> None:
     # Create the Updater and pass it your bot's token.
-    updater = Updater("TOKEN", request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
+    updater = Updater("", request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
     j = updater.job_queue
     j.run_once(restart_job,1)
     # Get the dispatcher to register handlers
@@ -375,7 +426,9 @@ def main() -> None:
             ALARM: [
                 MessageHandler(Filters.text('Статус тревог'),check_alarm),
                 MessageHandler(Filters.text('Поставить на охрану'),set_timer),
-                MessageHandler(Filters.text('Снять с охраны'),unset)
+                MessageHandler(Filters.text('Снять с охраны'),unset_help),
+                MessageHandler(Filters.text('Отключить все тревоги'),unset_all),
+                dispatcher.add_handler(CommandHandler("unset", unset))
             ],
         },
         fallbacks=[MessageHandler(Filters.text('< Назад'), start_over)],
