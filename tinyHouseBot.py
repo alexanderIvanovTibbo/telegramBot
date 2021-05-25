@@ -24,8 +24,8 @@ from telegram.ext import (
 
 # Enable logging
 logging.basicConfig(
-    # filename='app.log',
-    # filemode='w',
+    filename='app.log',
+    filemode='w',
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
 
@@ -37,8 +37,8 @@ MAIN, MEDIA, RASP, MODEM, FILES, ALARM = range(6)
 ONE, TWO, THREE, FOUR, FIVE, BACK = range(6)
 
 mainFolder = "/home/pi/webcam/usb0/teleBotData"
-# scriptFolder = "/home/pi/webcam/usb0/mainScript/telegramBot/"
-scriptFolder = ""
+scriptFolder = "/home/pi/webcam/usb0/mainScript/telegramBot/"
+# scriptFolder = ""
 users = [882010412,1275463615]
 ipCam="192.168.0.10"
 prev_msg = ""
@@ -47,7 +47,6 @@ def start(update: Update, _: CallbackContext) -> int:
   """Send message on `/start`."""
   """ Get user that sent /start and log his name"""
   user = update.message.from_user
-  global chat_id
   chat_id = update.message.chat_id
   logger.info("User %s(id:%s) started the conversation.", user.first_name,user.id)
   if user.id not in users:
@@ -67,7 +66,7 @@ def start(update: Update, _: CallbackContext) -> int:
 
 def start_over(update: Update, _: CallbackContext) -> int:
     """Prompt same text & keyboard as `start` does but not as new message"""
-
+    chat_id = update.message.chat_id
     reply_keyboard =\
     [
         ["Получить фото/видео"],
@@ -83,6 +82,7 @@ def start_over(update: Update, _: CallbackContext) -> int:
 
 
 def media_main(update: Update, _: CallbackContext) -> int:
+    chat_id = update.message.chat_id
     reply_keyboard =\
     [
         ["Получить фото"],
@@ -96,6 +96,7 @@ def media_main(update: Update, _: CallbackContext) -> int:
 
 
 def modem_main(update: Update, _: CallbackContext) -> int:
+    chat_id = update.message.chat_id
     reply_keyboard = \
         [
             ["Баланс SIM-карты"],
@@ -108,6 +109,7 @@ def modem_main(update: Update, _: CallbackContext) -> int:
 
 
 def rasp_main(update: Update, _: CallbackContext) -> int:
+    chat_id = update.message.chat_id
     reply_keyboard =\
     [
         ["Температура CPU"],
@@ -122,6 +124,7 @@ def rasp_main(update: Update, _: CallbackContext) -> int:
     return RASP
 
 def alarm_main(update: Update, _: CallbackContext) -> int:
+    chat_id = update.message.chat_id
     reply_keyboard =\
     [
         ["Статус тревог"],
@@ -269,13 +272,11 @@ def alarm(context: CallbackContext) -> None:
     with open(scriptFolder+"alarmLogger.txt","r") as openfile:
         text_msg = openfile.read()
         if not str(prev_msg) in text_msg:
-           context.bot.send_message(chat_id=str(chat_id), text=str(text_msg))
-#          context.bot.send_message(chat_id=job.context, text=str(line))
+           context.bot.send_message(chat_id=str(context.job.name), text=str(text_msg))
            media = get_photoGroup()
            if type(media) is not str:
               context.bot.send_media_group(
               chat_id=chat_id,
-#             chat_id=job.context,
               media=media
               )
            else:
@@ -311,12 +312,11 @@ def set_timer(update: Update, context: CallbackContext) -> int:
             text_file.close()
 
     except (IndexError, ValueError):
-        update.message.reply_text(text='Usage: /set <seconds>')
+        update.message.reply_text(text='Ошибка')
     return ALARM
 
 def restart_job(context: CallbackContext):
         """Restart a job to the queue."""
-        # global chat_id
         if not os.stat(scriptFolder+"jobLogger.txt").st_size == 0:
            text_file = open(scriptFolder+"jobLogger.txt", "r")
            lines = text_file.readlines()
@@ -339,12 +339,12 @@ def unset_help(update: Update, _: CallbackContext) -> None:
         ["< Назад"],
     ]
     reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
-    update.message.bot.delete_message(chat_id=chat_id, message_id=update.message.message_id)
     update.message.reply_text('Отправь /unset <Имя тревоги> для отключения тревоги', reply_markup=reply_markup)
     return ALARM
 
 def unset(update: Update, context: CallbackContext) -> int:
     """Remove the job if the user changed their mind."""
+    chat_id = update.message.chat_id
     reply_keyboard =\
     [
         ["Статус тревог"],
@@ -354,7 +354,6 @@ def unset(update: Update, context: CallbackContext) -> int:
         ["< Назад"],
     ]
     reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
-    chat_id = update.message.chat_id
     try:
         alarm_id = str(context.args[0])
         job_removed = remove_job_if_exists(alarm_id, context)
@@ -386,7 +385,7 @@ def unset_all(update: Update, context: CallbackContext) -> int:
 
 def main() -> None:
     # Create the Updater and pass it your bot's token.
-    updater = Updater("", request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
+    updater = Updater("TOKEN", request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
     j = updater.job_queue
     j.run_once(restart_job,1)
     # Get the dispatcher to register handlers
@@ -428,7 +427,6 @@ def main() -> None:
                 MessageHandler(Filters.text('Поставить на охрану'),set_timer),
                 MessageHandler(Filters.text('Снять с охраны'),unset_help),
                 MessageHandler(Filters.text('Отключить все тревоги'),unset_all),
-                dispatcher.add_handler(CommandHandler("unset", unset))
             ],
         },
         fallbacks=[MessageHandler(Filters.text('< Назад'), start_over)],
@@ -438,6 +436,7 @@ def main() -> None:
     dispatcher.add_handler(conv_handler)
     dispatcher.add_handler(CommandHandler("photo", get_photo))
     dispatcher.add_handler(CommandHandler("alarm", set_timer))
+    dispatcher.add_handler(CommandHandler("unset", unset))
     # Start the Bot
     updater.start_polling()
 
