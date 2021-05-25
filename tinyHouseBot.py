@@ -24,8 +24,8 @@ from telegram.ext import (
 
 # Enable logging
 logging.basicConfig(
-    filename='app.log',
-    filemode='w',
+    # filename='app.log',
+    # filemode='w',
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
 
@@ -37,8 +37,8 @@ MAIN, MEDIA, RASP, MODEM, FILES, ALARM = range(6)
 ONE, TWO, THREE, FOUR, FIVE, BACK = range(6)
 
 mainFolder = "/home/pi/webcam/usb0/teleBotData"
-scriptFolder = "/home/pi/webcam/usb0/mainScript/telegramBot/"
-# scriptFolder = ""
+# scriptFolder = "/home/pi/webcam/usb0/mainScript/telegramBot/"
+scriptFolder = ""
 users = [882010412,1275463615]
 ipCam="192.168.0.10"
 prev_msg = ""
@@ -372,20 +372,44 @@ def unset(update: Update, context: CallbackContext) -> int:
 
 def unset_all(update: Update, context: CallbackContext) -> int:
     """Remove the job if the user changed their mind."""
+    reply_keyboard =\
+    [
+        ["Статус тревог"],
+        ["Поставить на охрану"],
+        ["Снять с охраны"],
+        ["Отключить все тревоги"],
+        ["< Назад"],
+    ]
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
     current_jobs = context.job_queue.jobs()
     if not current_jobs:
-        update.message.reply_text(text="Тревоги отсутствуют")
+        text="Тревоги отсутствуют"
     for job in current_jobs:
-        update.message.reply_text(text="Тревога отключена ("+f'{job.name}'+")")
+        text="Тревога отключена ("+f'{job.name}'+")"
         job_removed = remove_job_if_exists(str(job.name), context)
     with open("jobLogger.txt", "w") as file:
             file.write('')
     file.close()
+    update.message.reply_text(text=text,reply_markup=reply_markup)
+    return ALARM
+
+def prove_unset_all(update: Update, context: CallbackContext) -> int:
+    reply_keyboard =\
+    [
+        ['Да','Нет']
+    ]
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
+
+    current_jobs = context.job_queue.jobs()
+    if not current_jobs:
+        update.message.reply_text("Тревоги отсутствуют")
+    else:
+        update.message.reply_text('Вы действительно хотите отключить все тревоги', reply_markup=reply_markup)
     return ALARM
 
 def main() -> None:
     # Create the Updater and pass it your bot's token.
-    updater = Updater("TOKEN", request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
+    updater = Updater("1312160633:AAEbyukZeVW-RAOa7br4hAFNcLSqAwPZMNM", request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
     j = updater.job_queue
     j.run_once(restart_job,1)
     # Get the dispatcher to register handlers
@@ -426,7 +450,9 @@ def main() -> None:
                 MessageHandler(Filters.text('Статус тревог'),check_alarm),
                 MessageHandler(Filters.text('Поставить на охрану'),set_timer),
                 MessageHandler(Filters.text('Снять с охраны'),unset_help),
-                MessageHandler(Filters.text('Отключить все тревоги'),unset_all),
+                MessageHandler(Filters.text('Отключить все тревоги'),prove_unset_all),
+                MessageHandler(Filters.text('Да'),unset_all),
+                MessageHandler(Filters.text('Нет'),start_over),
             ],
         },
         fallbacks=[MessageHandler(Filters.text('< Назад'), start_over)],
