@@ -24,8 +24,8 @@ from telegram.ext import (
 
 # Enable logging
 logging.basicConfig(
-    # filename='app.log',
-    # filemode='w',
+#     filename='app.log',
+#     filemode='w',
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
 
@@ -37,8 +37,8 @@ MAIN, MEDIA, RASP, MODEM, FILES, ALARM = range(6)
 ONE, TWO, THREE, FOUR, FIVE, BACK = range(6)
 
 mainFolder = "/home/pi/webcam/usb0/teleBotData"
-# scriptFolder = "/home/pi/webcam/usb0/mainScript/telegramBot/"
-scriptFolder = ""
+scriptFolder = "/home/pi/webcam/usb0/mainScript/telegramBot/"
+#scriptFolder = ""
 users = [882010412,1275463615]
 ipCam="192.168.0.10"
 prev_msg = ""
@@ -276,7 +276,7 @@ def alarm(context: CallbackContext) -> None:
            media = get_photoGroup()
            if type(media) is not str:
               context.bot.send_media_group(
-              chat_id=chat_id,
+              chat_id=str(context.job.name),
               media=media
               )
            else:
@@ -386,11 +386,11 @@ def unset_all(update: Update, context: CallbackContext) -> int:
         text="Тревоги отсутствуют"
     for job in current_jobs:
         text="Тревога отключена ("+f'{job.name}'+")"
+        update.message.reply_text(text=text,reply_markup=reply_markup)
         job_removed = remove_job_if_exists(str(job.name), context)
     with open("jobLogger.txt", "w") as file:
             file.write('')
     file.close()
-    update.message.reply_text(text=text,reply_markup=reply_markup)
     return ALARM
 
 def prove_unset_all(update: Update, context: CallbackContext) -> int:
