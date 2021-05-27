@@ -192,8 +192,7 @@ def get_photo(update: Update, _: CallbackContext) -> None:
       flag=snapshot(fotoDir)
       if flag:
            photo = open(fotoDir, 'rb')
-           chat_id = update.message.chat_id
-           update.message.bot.send_photo(chat_id=chat_id, photo=photo)
+           update.message.reply_photo(photo=photo)
       else:
          update.message.reply_text(text='Video not found')
   else:
@@ -213,7 +212,6 @@ def get_photoGroup():
             time.sleep(2)
          else:
            text='Video not found'
-#           update.message.reply_text(text=f'Video not found')
            break
       if not photos:
          return text
