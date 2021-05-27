@@ -32,15 +32,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Stages
-MAIN, MEDIA, RASP, MODEM, FILES, ALARM = range(6)
-# Callback data
-ONE, TWO, THREE, FOUR, FIVE, BACK = range(6)
+MAIN, MEDIA, PHOTO, RASP, MODEM, FILES, ALARM = range(7)
 
 mainFolder = "/home/pi/webcam/usb0/teleBotData"
-scriptFolder = "/home/pi/webcam/usb0/mainScript/telegramBot/"
-#scriptFolder = ""
+# scriptFolder = "/home/pi/webcam/usb0/mainScript/telegramBot/"
+scriptFolder = ""
 users = [882010412,1275463615]
-ipCam="192.168.0.10"
+ip_cams=['192.168.0.10','192.168.0.20']
 prev_msg = ""
 
 def start(update: Update, _: CallbackContext) -> int:
@@ -94,6 +92,19 @@ def media_main(update: Update, _: CallbackContext) -> int:
     update.message.reply_text(text="Получить фото/видео", reply_markup=reply_markup)
     return MEDIA
 
+def photo_main(update: Update, _: CallbackContext) -> int:
+    chat_id = update.message.chat_id
+    reply_keyboard =\
+    [
+        ["Фото из дома"],
+        ["Фото участка"],
+        ['Фото со всех камер'],
+        ["< Назад"],
+    ]
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
+    update.message.bot.delete_message(chat_id=chat_id, message_id=update.message.message_id)
+    update.message.reply_text(text="Какие фото хотите получить: ", reply_markup=reply_markup)
+    return PHOTO
 
 def modem_main(update: Update, _: CallbackContext) -> int:
     chat_id = update.message.chat_id
@@ -186,39 +197,51 @@ def get_video(update: Update, _: CallbackContext) -> None:
     return MEDIA
 
 def get_photo(update: Update, _: CallbackContext) -> None:
-  if check_ping()==0:
-      update.message.reply_text(text='Wait a few minutes')
-      fotoDir=get_folder(0)
-      flag=snapshot(fotoDir)
-      if flag:
-           photo = open(fotoDir, 'rb')
-           update.message.reply_photo(photo=photo)
-      else:
-         update.message.reply_text(text='Video not found')
+  if update.message.text == 'Фото со всех камер':
+      photos = get_photoGroup()
+      for photo in photos:
+          if type(photo) is not str:
+              update.message.reply_photo(photo=photo)
+          else:
+              update.message.reply_text(text=photo)
   else:
-         update.message.reply_text(text='IP cam not connected')
-  return MEDIA
+      if update.message.text == 'Фото из дома':
+          ip_camera = ip_cams[0]
+      else:
+          ip_camera = ip_cams[1]
+      if check_ping(ip_camera)==0:
+          update.message.reply_text(text='Wait a few minutes')
+          fotoDir=get_folder(0)
+          flag=snapshot(fotoDir,ip_camera)
+          if flag:
+               photo = open(fotoDir, 'rb')
+               update.message.reply_photo(photo=photo)
+          else:
+             update.message.reply_text(text='Video not found')
+      else:
+             update.message.reply_text(text=ip_camera + ' not connected')
+  return PHOTO
 
 def get_photoGroup():
-  if check_ping()==0:
-      photos = list()
-      i = 0
-      while i < 3:
-         fotoDir=get_folder(0)
-         flag=snapshot(fotoDir)
-         if flag:
-            photos.append(InputMediaPhoto(open(fotoDir, 'rb')))
-            i += 1
-            time.sleep(2)
-         else:
-           text='Video not found'
-           break
-      if not photos:
-         return text
+    results = list()
+    for ip_cam in ip_cams:
+      if check_ping(ip_cam)==0:
+          i = 0
+          while i < 2:
+             fotoDir=get_folder(0)
+             flag=snapshot(fotoDir,ip_cam)
+             if flag:
+                results.append(InputMediaPhoto(open(fotoDir, 'rb')))
+                i += 1
+                time.sleep(2)
+             else:
+               text='Файл не найден'
+               break
+          if not results:
+             results.append(text)
       else:
-         return photos
-  else:
-      return 'IP cam not connected'
+           results.append(ip_cam + ' Не подключена')
+    return results
 
 def getsize(bytes):
    return str((bytes/1024/1000))+" MB"
@@ -245,12 +268,12 @@ def get_folder(num):
    else:
         return path
 
-def check_ping():
-   resp = os.system("ping -c 1 " +ipCam)
+def check_ping(camara_ip):
+   resp = os.system("ping -c 1 " +camara_ip)
    return resp
 
-def snapshot(folder):
-   subprocess.call("ffmpeg -rtsp_transport tcp -i 'rtsp://%s/user=admin_password=123_channel=1_stream=0.sdp' -vframes 1 -r 1 %s" % (ipCam,folder), shell = True)
+def snapshot(folder,camera_ip):
+   subprocess.call("ffmpeg -rtsp_transport tcp -i 'rtsp://%s/user=admin_password=123_channel=1_stream=0.sdp' -vframes 1 -r 1 %s" % (camera_ip,folder), shell = True)
    return os.path.isfile(folder)
 
 #def stream_video():
@@ -271,14 +294,15 @@ def alarm(context: CallbackContext) -> None:
         text_msg = openfile.read()
         if not str(prev_msg) in text_msg:
            context.bot.send_message(chat_id=str(context.job.name), text=str(text_msg))
-           media = get_photoGroup()
-           if type(media) is not str:
-              context.bot.send_media_group(
-              chat_id=str(context.job.name),
-              media=media
-              )
-           else:
-              context.bot.send_message(job.context, text=media)
+           photos = get_photoGroup()
+           for photo in photos:
+               if type(photo) is not str:
+                  context.bot.send_photo(
+                  chat_id=str(context.job.name),
+                  photo=photo
+                  )
+               else:
+                  context.bot.send_message(job.context, text=photo)
     prev_msg = str(text_msg)
     openfile.close()
 
@@ -407,7 +431,7 @@ def prove_unset_all(update: Update, context: CallbackContext) -> int:
 
 def main() -> None:
     # Create the Updater and pass it your bot's token.
-    updater = Updater("1312160633:AAEbyukZeVW-RAOa7br4hAFNcLSqAwPZMNM", request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
+    updater = Updater("TOKEN", request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
     j = updater.job_queue
     j.run_once(restart_job,1)
     # Get the dispatcher to register handlers
@@ -427,11 +451,13 @@ def main() -> None:
                 # CallbackQueryHandler(alarm_main, pattern='^' + str(FIVE) + '$'),
             ],
             MEDIA: [
-#                CommandHandler('photo', get_photoGroup),
-#                 CommandHandler('photo', get_photo),
-#                CommandHandler('video', get_video)
-                MessageHandler(Filters.text('Получить фото'),get_photo),
+                MessageHandler(Filters.text('Получить фото'),photo_main),
                 MessageHandler(Filters.text('Получить видео'),get_video)
+            ],
+            PHOTO: [
+                MessageHandler(Filters.text('Фото из дома'),get_photo),
+                MessageHandler(Filters.text('Фото участка'),get_photo),
+                MessageHandler(Filters.text('Фото со всех камер'),get_photo)
             ],
             MODEM: [
                 MessageHandler(Filters.text('Баланс SIM-карты'),get_balance)
