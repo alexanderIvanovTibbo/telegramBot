@@ -448,7 +448,7 @@ def prove_unset_all(update: Update, context: CallbackContext) -> int:
 
 def main() -> None:
     # Create the Updater and pass it your bot's token.
-    updater = Updater("1532226525:AAFcyuyHvLAX6M3MK0DjzQ8pG7vDaFGMVOQ", request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
+    updater = Updater("TOKEN", request_kwargs={'read_timeout': 10, 'connect_timeout': 10})
     j = updater.job_queue
     j.run_once(restart_job,1)
     # Get the dispatcher to register handlers
