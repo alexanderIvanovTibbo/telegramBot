@@ -175,18 +175,18 @@ def get_balance(update: Update, _: CallbackContext) -> int:
 def get_durationtime(update: Update, _: CallbackContext) -> int:
   pid = os.getpid()
   etime = subprocess.check_output("ps -p %s -o etime=" % pid, shell=True).decode('UTF-8')
-  update.message.reply_text(text="Bot duration time:%s" % etime)
+  update.message.reply_text(text="Время работы:%s" % etime)
   return RASP
 
 def get_disk_usage(update: Update, _: CallbackContext) -> int:
   hdd = psutil.disk_usage("/home/pi/webcam/usb0")
-  strText = "Total: %s \nUsed: %s \nFree: %s " % (getsize(hdd.total),getsize(hdd.used),getsize(hdd.free))
+  strText = "Всего: %s \nЗанято: %s \nСвободно: %s " % (getsize(hdd.total),getsize(hdd.used),getsize(hdd.free))
   update.message.reply_text(text=strText)
   return RASP
 
 def get_temp(update: Update, _: CallbackContext) -> int:
   temp = os.popen('vcgencmd measure_temp').readline()
-  update.message.reply_text(text="Core temperature: %s" % temp.replace('temp=',''))
+  update.message.reply_text(text="Температура процессора: %s" % temp.replace('temp=',''))
   return RASP
 
 def get_log(update: Update, _: CallbackContext) -> int:
@@ -200,20 +200,21 @@ def get_video(update: Update, _: CallbackContext) -> None:
          else:
              ip_camera = ip_cams[1]
          if check_ping(ip_camera)==0:
-            update.message.reply_text(text=f'Wait a few minutes')
+            update.message.reply_text(text=f'Идет загрузка...')
             videoDir = get_folder(1)
             flag = stream_video(videoDir,ip_camera)
             if flag:
                 video = open(videoDir, 'rb')
                 update.message.reply_video(video=video)
             else:
-               update.message.reply_text(text=f'Video not found')
+               update.message.reply_text(text=f'Файл не найден')
          else:
-               update.message.reply_text(text= ip_camera + ' not connected')
+               update.message.reply_text(text= ip_camera + ' нет соединения')
          return VIDEO
 
 def get_photo(update: Update, _: CallbackContext) -> None:
   if update.message.text == 'Фото со всех камер':
+      update.message.reply_text(text='Идет загрузка...')
       photos = get_photoGroup()
       for photo in photos:
           if type(photo) is not str:
@@ -226,16 +227,16 @@ def get_photo(update: Update, _: CallbackContext) -> None:
       else:
           ip_camera = ip_cams[1]
       if check_ping(ip_camera)==0:
-          update.message.reply_text(text='Wait a few minutes')
+          update.message.reply_text(text='Идет загрузка...')
           fotoDir=get_folder(0)
           flag=snapshot(fotoDir,ip_camera)
           if flag:
                photo = open(fotoDir, 'rb')
                update.message.reply_photo(photo=photo)
           else:
-             update.message.reply_text(text='Video not found')
+             update.message.reply_text(text='Файл не найден')
       else:
-             update.message.reply_text(text=ip_camera + ' not connected')
+             update.message.reply_text(text=ip_camera + ' нет соединения')
   return PHOTO
 
 def get_photoGroup():
@@ -247,7 +248,7 @@ def get_photoGroup():
              fotoDir=get_folder(0)
              flag=snapshot(fotoDir,ip_cam)
              if flag:
-                results.append(InputMediaPhoto(open(fotoDir, 'rb')))
+                results.append(open(fotoDir, 'rb'))
                 i += 1
                 time.sleep(2)
              else:
