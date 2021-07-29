@@ -6,7 +6,7 @@ replace_values = {"{": "", "}": "\n",",":"\n"}
 
 def on_message(client, userdata, message):
     print(str(message.topic)+"\n"+ str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))+"\n"+multiple_replace(str(message.payload.decode("utf-8")), replace_values))
-    text_file = open("/home/pi/webcam/usb0/mainScript/telegramBot/alarmLogger.txt", "w")
+    text_file = open("/home/pi/webcam/telegramBot/alarmLogger.txt", "w")
     text_file.write(str(message.topic)+"\n"+ str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))+"\n"+multiple_replace(str(message.payload.decode("utf-8")), replace_values))
     text_file.close()
 

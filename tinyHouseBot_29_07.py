@@ -10,7 +10,6 @@ import time
 import binascii
 import psutil
 import shutil
-import RPi.GPIO as GPIO
 from uuid import uuid4
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, InlineQueryResultCachedPhoto, InputMediaPhoto, ReplyKeyboardMarkup
 from telegram.ext import (
@@ -22,14 +21,6 @@ from telegram.ext import (
     ConversationHandler,
     CallbackContext,
 )
-
-GPIO.setmode(GPIO.BOARD)
-GPIO.setwarnings(False)  # Turn off warnings output
-GPIO.setup(22, GPIO.OUT) # Set pin #22 to RELAY output
-GPIO.output(22,True)
-GPIO.setup(21, GPIO.OUT) # Set pin #21 to MOSFET output
-GPIO.setup(19, GPIO.IN,pull_up_down=GPIO.PUD_DOWN)  # Set pin #19 to RELAY input
-powerStatus = False
 
 # Enable logging
 logging.basicConfig(
@@ -149,7 +140,6 @@ def rasp_main(update: Update, _: CallbackContext) -> int:
         ["Информация о HDD"],
         ["Время работы Telegram-бота"],
         ["Получить логи Telegram-бота"],
-        ["Информация о источнике питания"],
         ["< Назад"],
     ]
     reply_markup = ReplyKeyboardMarkup(reply_keyboard,resize_keyboard =True, one_time_keyboard=True)
@@ -203,11 +193,6 @@ def get_temp(update: Update, _: CallbackContext) -> int:
 def get_log(update: Update, _: CallbackContext) -> int:
   log_file = open('app.log')
   update.message.reply_document(document=log_file)
-  return RASP
-
-def get_powerstatus(update: Update, _: CallbackContext) -> int:
-  powerSt = check_power(True)
-  update.message.reply_text(text=powerSt)
   return RASP
 
 def get_video(update: Update, _: CallbackContext) -> None:
@@ -301,25 +286,6 @@ def get_folder(num):
    else:
         return path
 
-def check_power(flag):
-    global powerStatus
-    text = None
-    buttonIn = GPIO.input(19)
-    if buttonIn:
-        if powerStatus:
-           text="Основное питание восстановлено"
-           powerStatus = False
-        if flag:
-           text="Основной источник питания"
-    else:
-        if not powerStatus:
-           text="Переход на резервный источник питания"
-           powerStatus = True
-        if flag:
-           text="Резервный источник питания"
-
-    return text
-
 def check_ping(camara_ip):
    resp = os.system("ping -c 1 " +camara_ip)
    return resp
@@ -340,11 +306,8 @@ def stream_video(videoDir,camera_ip):
 
 def alarm(context: CallbackContext) -> None:
     """Send the alarm message."""
-    global prev_msg
     job = context.job
-    powerSt = check_power(False)
-    if powerSt is not None:
-        context.bot.send_message(chat_id=str(context.job.name), text=powerSt)
+    global prev_msg
     with open(scriptFolder+"alarmLogger.txt","r") as openfile:
         text_msg = openfile.read()
         if not str(prev_msg) in text_msg:
@@ -376,7 +339,7 @@ def set_timer(update: Update, context: CallbackContext) -> int:
         chat_id = update.message.chat_id
         job_removed = remove_job_if_exists(str(chat_id), context)
         context.job_queue.run_repeating(alarm, 10, context=chat_id, name=str(chat_id))
-        update.message.reply_text(text="Тревога включена ("+f'{chat_id}'+")")
+        update.message.reply_text(text='Alarm turn ON')
         text_file = open(scriptFolder + "jobLogger.txt", "r")
         lines = text_file.readlines()
         for line in lines:
@@ -522,8 +485,7 @@ def main() -> None:
                 MessageHandler(Filters.text('Температура CPU'),get_temp),
                 MessageHandler(Filters.text('Информация о HDD'),get_disk_usage),
                 MessageHandler(Filters.text('Время работы Telegram-бота'),get_durationtime),
-                MessageHandler(Filters.text('Получить логи Telegram-бота'),get_log),
-                MessageHandler(Filters.text('Информация о источнике питания'),get_powerstatus)
+                MessageHandler(Filters.text('Получить логи Telegram-бота'),get_log)
             ],
 
             ALARM: [
